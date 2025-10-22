@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import List
 
 from docutils import nodes
+from sphinx.domains import Domain
 from sphinx.errors import ExtensionError
 from sphinx.util.docutils import SphinxDirective
 from sphinx.util.logging import getLogger
@@ -84,6 +85,7 @@ class TagLinks(SphinxDirective):
         current_doc_dir = Path(self.env.doc2path(self.env.docname)).parent
         relative_tag_dir = Path(os.path.relpath(tag_dir, current_doc_dir))
 
+        tag_domain = self.env.get_domain("tags")
         for tag in page_tags:
             count += 1
             # We want the link to be the path to the _tags folder, relative to
@@ -96,6 +98,7 @@ class TagLinks(SphinxDirective):
             #    - current_doc_path
 
             file_basename = _normalize_tag(tag, dashes=True)
+            tag_domain.add_tag(tag, file_basename)
 
             if self.env.app.config.tags_create_badges:
                 result += self._get_badge_node(tag, file_basename, relative_tag_dir)
@@ -108,6 +111,7 @@ class TagLinks(SphinxDirective):
 
         # register tags to global metadata for document
         self.env.metadata[self.env.docname]["tags"] = page_tags
+
 
         return [result]
 
@@ -425,6 +429,66 @@ def update_tags(app):
             "Tags were not created (tags_create_tags=False in conf.py)", color="white"
         )
 
+class TagList(TagLinks):
+    """
+    Class to produce list of tags and pages
+    """
+    required_arguments = 0
+    optional_arguments = 0  # Arbitrary, split on separator
+    final_argument_whitespace = True
+    has_content = False
+    final_argument_whitespace = True
+
+    def run(self):
+
+        tag_domain = self.env.get_domain('tags')
+
+        result = nodes.paragraph()
+        result["classes"] = ["tags"]
+        count = 0
+
+        tag_dir = Path(self.env.app.srcdir) / self.env.app.config.tags_output_dir
+        current_doc_dir = Path(self.env.doc2path(self.env.docname)).parent
+        relative_tag_dir = Path(os.path.relpath(tag_dir, current_doc_dir))
+
+        for tag, file_basename in tag_domain.data["tag_index_pages"].items():
+            count += 1
+            if self.env.app.config.tags_create_badges:
+                result += self._get_badge_node(tag, file_basename, relative_tag_dir)
+                tag_separator = " "
+            else:
+                result += self._get_plaintext_node(tag, file_basename)
+                tag_separator = f"{self.separator} "
+            if not count == len(tag_domain.data["tag_index_pages"]):
+                result += nodes.inline(text=tag_separator)
+
+        return [result]
+
+
+class TagsDomain(Domain):
+    name = "tags"
+    label = ''
+    roles = {}
+    directives = {
+        'tags': TagLinks,
+        'taglist': TagList
+    }
+    indices = {}
+    initial_data = {
+        # dictionary structure will be {'tag_name': file_basename}
+        'tag_index_pages': {}
+    }
+    data_version = 0
+
+    def add_tag(self, tag_name, file_basename):
+        """ Add a tag to the domain"""
+        """
+        each tag index page has ref at the top
+        just ned the ref
+        lets make raw tag name -> sphinx reference object
+        """
+        self.data["tag_index_pages"][tag_name] = file_basename
+
 
 def setup(app):
     """Setup for Sphinx."""
@@ -452,6 +516,8 @@ def setup(app):
         "html",
     )
 
+    app.add_domain(TagsDomain)
+
     # Update tags
     # TODO: tags should be updated after sphinx-gallery is generated, and the
     # gallery is also connected to builder-inited. Are there situations when
@@ -465,3 +531,87 @@ def setup(app):
         "parallel_write_safe": True,
         "env_version": 1,
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
