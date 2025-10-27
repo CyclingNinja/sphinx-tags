@@ -524,6 +524,8 @@ def setup(app):
     # this will not work?
     app.connect("builder-inited", update_tags)
     app.add_directive("tags", TagLinks)
+    app.add_directive("taglist", TagList)
+
 
     return {
         "version": __version__,
